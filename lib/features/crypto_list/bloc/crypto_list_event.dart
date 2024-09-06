@@ -1,9 +1,14 @@
 part of 'crypto_list_bloc.dart';
 
-class CryptoListEvent {
+abstract class CryptoListEvent extends Equatable{
 
 }
 
-class LoadCryptoListEvent extends CryptoListEvent{
+class CryptoListLoadEvent extends CryptoListEvent{
+  final Completer? completer;
 
+  CryptoListLoadEvent({this.completer});
+
+  @override
+  List<Object?> get props => [completer];
 }

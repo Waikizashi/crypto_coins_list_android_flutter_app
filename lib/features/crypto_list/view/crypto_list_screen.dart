@@ -1,13 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 import 'package:training_app/features/crypto_list/bloc/crypto_list_bloc.dart';
 import 'package:training_app/features/crypto_list/widgets/widgets.dart';
 import 'package:training_app/repositories/crypto_coins/abstract_coins_repository.dart';
-import 'package:training_app/repositories/crypto_coins/models/models.dart';
-
-
 
 class CryptoListScreen extends StatefulWidget {
   const CryptoListScreen({super.key});
@@ -21,7 +21,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
 
   @override
   void initState(){
-    _cryptoListBloc.add(LoadCryptoListEvent());
+    _cryptoListBloc.add(CryptoListLoadEvent());
     super.initState();
   }
   @override
@@ -30,38 +30,63 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
-        title: const Center(child: Text('Crypto currency app')),
+        title: const Center(child: Text('Crypto currencies')),
+        actions: [
+          IconButton(onPressed: (){
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => TalkerScreen(talker: GetIt.I<Talker>())));
+          },
+              icon: const Icon(Icons.document_scanner_outlined))
+        ],
       ),
-      body: BlocBuilder<CryptoListBloc, CryptoListState>(
-        bloc: _cryptoListBloc,
-        builder: (context, state) {
-          if(state is CryptoListLoadedState){
-            return ListView.separated(
-                  padding: const EdgeInsets.only(top: 16),
-                  separatorBuilder: (context, i) => Divider(color: theme.dividerColor),
-                  itemCount: state.coinList.length,
-                  itemBuilder: (context, i) {
-                  final coin =  state.coinList[i];
-                  return CryptoCoinTile(coin: coin,);
-                  }
-              );
-          }
-          if(state is CryptoListErrorState){
-            return const Center(child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  "Something went wrong..."
-                ),
-                Text(
-                  "Please try again later"
-                )
-              ],
-            ));
-          }
-          return const Center(child: CircularProgressIndicator());
+      body: RefreshIndicator(
+        onRefresh: () async {
+          final completer = Completer();
+          _cryptoListBloc.add(CryptoListLoadEvent(completer: completer));
+          return completer.future;
         },
+          child: BlocBuilder<CryptoListBloc, CryptoListState>(
+            bloc: _cryptoListBloc,
+            builder: (context, state) {
+              if(state is CryptoListLoadedState){
+                return ListView.separated(
+                      padding: const EdgeInsets.only(top: 16),
+                      separatorBuilder: (context, i) => Divider(
+                          thickness: 0.2,
+                          color: theme.dividerColor
+                      ),
+                      itemCount: state.coinsList.length,
+                      itemBuilder: (context, i) {
+                      final coin =  state.coinsList[i];
+                      return CryptoCoinTile(coin: coin,);
+                      }
+                  );
+              }
+              if(state is CryptoListErrorState){
+                return Center(child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Something went wrong...",
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    Text(
+                      "Please try again later",
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 30,),
+                    OutlinedButton(onPressed: () {
+                      _cryptoListBloc.add(CryptoListLoadEvent());
+                    }, child: Text(
+                        'Try again',
+                      style: theme.textTheme.bodyMedium,
+                    ))
+                  ],
+                ));
+              }
+              return const Center(child: CircularProgressIndicator());
+          },
+        )
       )
     );
   }

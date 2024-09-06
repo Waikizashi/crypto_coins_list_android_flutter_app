@@ -1,0 +1,1 @@
+export 'coin_info_widget.dart';
